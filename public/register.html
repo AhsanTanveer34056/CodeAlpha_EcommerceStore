@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Register — ShopEasy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>body{font-family:'Inter',sans-serif;}</style>
+</head>
+<body>
+
+<header>
+  <nav class="navbar">
+    <div class="container">
+      <a href="/index.html" class="logo"><i class="fas fa-store"></i> ShopEasy</a>
+      <button class="hamburger" id="hamburger" onclick="toggleMobileNav()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-links" id="nav-links">
+        <a href="/products.html">Products</a>
+        <button class="cart-link-btn" onclick="openCartDrawer()" aria-label="Open cart">
+          <i class="fas fa-shopping-cart"></i>
+          <span class="cart-badge" id="cart-count">0</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<main class="auth-page">
+  <div class="auth-card">
+    <h2>Create Account</h2>
+    <p class="subtitle">Join ShopEasy and start shopping today</p>
+
+    <div class="alert alert-error" id="reg-error"></div>
+
+    <form id="register-form">
+      <div class="form-group">
+        <label><i class="fas fa-user"></i> Full Name</label>
+        <input type="text" id="name" placeholder="John Doe" required autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-envelope"></i> Email</label>
+        <input type="email" id="email" placeholder="you@example.com" required autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-lock"></i> Password</label>
+        <input type="password" id="password" placeholder="Min. 6 characters" required minlength="6" autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label><i class="fas fa-lock"></i> Confirm Password</label>
+        <input type="password" id="confirm-password" placeholder="Repeat password" required autocomplete="new-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-full" id="reg-btn">
+        <i class="fas fa-user-plus"></i> Create Account
+      </button>
+    </form>
+
+    <div class="auth-footer">
+      Already have an account? <a href="/login.html">Log in</a>
+    </div>
+  </div>
+</main>
+
+<div id="toast" class="toast"></div>
+<script src="/js/main.js"></script>
+<script>
+  if (getUser()) window.location.href = '/index.html';
+
+  document.getElementById('register-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('reg-btn');
+    const errEl = document.getElementById('reg-error');
+    errEl.className = 'alert alert-error';
+
+    const name = document.getElementById('name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirm = document.getElementById('confirm-password').value;
+
+    if (password !== confirm) {
+      errEl.textContent = 'Passwords do not match.';
+      errEl.className = 'alert alert-error show';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
+
+    try {
+      const { token, user } = await apiFetch('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, password })
+      });
+      setAuth(token, user);
+      showToast('Account created! Welcome, ' + user.name + '!', 'success');
+      setTimeout(() => { window.location.href = '/index.html'; }, 1000);
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.className = 'alert alert-error show';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
+    }
+  });
+</script>
+</body>
+</html>

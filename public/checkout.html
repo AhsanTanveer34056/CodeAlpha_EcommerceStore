@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout — ShopEasy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>body{font-family:'Inter',sans-serif;}</style>
+</head>
+<body>
+
+<header>
+  <nav class="navbar">
+    <div class="container">
+      <a href="/index.html" class="logo"><i class="fas fa-store"></i> ShopEasy</a>
+      <button class="hamburger" id="hamburger" onclick="toggleMobileNav()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-links" id="nav-links">
+        <a href="/products.html">Products</a>
+        <div id="auth-links" style="display:flex;gap:0.75rem;align-items:center;">
+          <a href="/login.html">Login</a>
+          <a href="/register.html" class="btn btn-primary btn-sm">Register</a>
+        </div>
+        <div id="user-links" style="display:none;gap:0.75rem;align-items:center;">
+          <a href="/orders.html"><i class="fas fa-box"></i> Orders</a>
+          <span id="user-name" class="user-name-nav"></span>
+          <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+        <button class="cart-link-btn" onclick="openCartDrawer()" aria-label="Open cart">
+          <i class="fas fa-shopping-cart"></i>
+          <span class="cart-badge" id="cart-count">0</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<main class="checkout-page container">
+  <h1 class="page-title"><i class="fas fa-lock"></i> Checkout</h1>
+
+  <!-- Success message (hidden by default) -->
+  <div id="success-panel" style="display:none;text-align:center;padding:4rem 2rem;">
+    <div style="font-size:4rem;margin-bottom:1rem;">🎉</div>
+    <h2 style="font-size:1.75rem;font-weight:800;margin-bottom:0.5rem;">Order Placed!</h2>
+    <p style="color:var(--text-muted);margin-bottom:2rem;">Thank you for your purchase. Your order has been received.</p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+      <a href="/orders.html" class="btn btn-primary"><i class="fas fa-box"></i> View My Orders</a>
+      <a href="/products.html" class="btn btn-outline">Continue Shopping</a>
+    </div>
+  </div>
+
+  <div id="checkout-panel" class="checkout-layout">
+    <!-- Shipping Form -->
+    <div class="checkout-form-card">
+      <h3><i class="fas fa-truck"></i> Shipping Information</h3>
+      <div class="alert alert-error" id="checkout-error"></div>
+      <form id="checkout-form">
+        <div class="form-group">
+          <label>Full Name</label>
+          <input type="text" id="ship-name" placeholder="John Doe" required>
+        </div>
+        <div class="form-group">
+          <label>Street Address</label>
+          <input type="text" id="ship-address" placeholder="123 Main St" required>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>City</label>
+            <input type="text" id="ship-city" placeholder="New York" required>
+          </div>
+          <div class="form-group">
+            <label>ZIP / Postal Code</label>
+            <input type="text" id="ship-zip" placeholder="10001" required>
+          </div>
+        </div>
+
+        <hr class="divider">
+        <h3 style="font-size:1.05rem;font-weight:700;margin-bottom:1rem;"><i class="fas fa-credit-card"></i> Payment (Demo)</h3>
+        <div class="form-group">
+          <label>Card Number</label>
+          <input type="text" placeholder="4242 4242 4242 4242" maxlength="19" oninput="formatCard(this)">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Expiry</label>
+            <input type="text" placeholder="MM/YY" maxlength="5">
+          </div>
+          <div class="form-group">
+            <label>CVV</label>
+            <input type="text" placeholder="123" maxlength="4">
+          </div>
+        </div>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem;"><i class="fas fa-info-circle"></i> This is a demo store — no real payment is processed.</p>
+
+        <button type="submit" class="btn btn-success btn-full" style="margin-top:1.25rem;" id="place-order-btn">
+          <i class="fas fa-check"></i> Place Order
+        </button>
+      </form>
+    </div>
+
+    <!-- Order Summary -->
+    <div>
+      <div class="order-summary">
+        <h3>Your Order</h3>
+        <div id="checkout-items"></div>
+        <hr class="divider">
+        <div class="summary-line"><span>Subtotal</span><span id="co-subtotal">$0.00</span></div>
+        <div class="summary-line"><span>Shipping</span><span style="color:var(--success)">Free</span></div>
+        <div class="summary-line"><span>Tax (8%)</span><span id="co-tax">$0.00</span></div>
+        <div class="summary-line total"><span>Total</span><span id="co-total">$0.00</span></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p>&copy; 2024 ShopEasy. All rights reserved.</p>
+  </div>
+</footer>
+
+<div id="toast" class="toast"></div>
+<script src="/js/main.js"></script>
+<script>
+  function init() {
+    requireAuth();
+    const cart = getCart();
+    if (cart.length === 0) { window.location.href = '/cart.html'; return; }
+
+    const user = getUser();
+    if (user) document.getElementById('ship-name').value = user.name;
+
+    document.getElementById('checkout-items').innerHTML = cart.map(item => `
+      <div class="cart-preview-item">
+        <span class="cart-preview-name">${escHtml(item.name)}</span>
+        <span class="cart-preview-qty">×${item.quantity}</span>
+        <span>${fmt(item.price * item.quantity)}</span>
+      </div>`).join('');
+
+    const sub = cartTotal();
+    const tax = sub * 0.08;
+    document.getElementById('co-subtotal').textContent = fmt(sub);
+    document.getElementById('co-tax').textContent = fmt(tax);
+    document.getElementById('co-total').textContent = fmt(sub + tax);
+  }
+
+  function formatCard(input) {
+    input.value = input.value.replace(/\D/g, '').replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+  }
+
+  document.getElementById('checkout-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('place-order-btn');
+    const errEl = document.getElementById('checkout-error');
+    errEl.className = 'alert alert-error';
+
+    const shippingName = document.getElementById('ship-name').value.trim();
+    const shippingAddress = document.getElementById('ship-address').value.trim();
+    const shippingCity = document.getElementById('ship-city').value.trim();
+    const shippingZip = document.getElementById('ship-zip').value.trim();
+
+    if (!shippingName || !shippingAddress || !shippingCity || !shippingZip) {
+      errEl.textContent = 'Please fill in all shipping fields.';
+      errEl.className = 'alert alert-error show';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Placing Order...';
+
+    try {
+      const items = getCart().map(i => ({ productId: i.productId, quantity: i.quantity }));
+      await apiFetch('/orders', {
+        method: 'POST',
+        body: JSON.stringify({ items, shippingName, shippingAddress, shippingCity, shippingZip })
+      });
+      clearCart();
+      document.getElementById('checkout-panel').style.display = 'none';
+      document.getElementById('success-panel').style.display = 'block';
+    } catch (err) {
+      errEl.textContent = err.message;
+      errEl.className = 'alert alert-error show';
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-check"></i> Place Order';
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

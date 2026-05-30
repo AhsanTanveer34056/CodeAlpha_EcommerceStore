@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Orders — ShopEasy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>body{font-family:'Inter',sans-serif;}</style>
+</head>
+<body>
+
+<header>
+  <nav class="navbar">
+    <div class="container">
+      <a href="/index.html" class="logo"><i class="fas fa-store"></i> ShopEasy</a>
+      <button class="hamburger" id="hamburger" onclick="toggleMobileNav()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-links" id="nav-links">
+        <a href="/products.html">Products</a>
+        <div id="auth-links" style="display:flex;gap:0.75rem;align-items:center;">
+          <a href="/login.html">Login</a>
+          <a href="/register.html" class="btn btn-primary btn-sm">Register</a>
+        </div>
+        <div id="user-links" style="display:none;gap:0.75rem;align-items:center;">
+          <a href="/orders.html" style="color:var(--primary)"><i class="fas fa-box"></i> Orders</a>
+          <span id="user-name" class="user-name-nav"></span>
+          <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+        <button class="cart-link-btn" onclick="openCartDrawer()" aria-label="Open cart">
+          <i class="fas fa-shopping-cart"></i>
+          <span class="cart-badge" id="cart-count">0</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<main class="orders-page container">
+  <h1 class="page-title"><i class="fas fa-box"></i> My Orders</h1>
+
+  <div id="orders-loading" class="loading"><div class="spinner"></div></div>
+
+  <div id="orders-empty" class="empty-state" style="display:none;">
+    <div class="icon">📦</div>
+    <h3>No orders yet</h3>
+    <p>Your order history will appear here after you make a purchase.</p>
+    <a href="/products.html" class="btn btn-primary">Start Shopping</a>
+  </div>
+
+  <div id="orders-list"></div>
+</main>
+
+<footer>
+  <div class="container">
+    <p>&copy; 2024 ShopEasy. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/products.html">Products</a>
+      <a href="/orders.html">My Orders</a>
+      <a href="/cart.html">Cart</a>
+    </div>
+  </div>
+</footer>
+
+<div id="toast" class="toast"></div>
+<script src="/js/main.js"></script>
+<script>
+  requireAuth();
+
+  function statusBadge(status) {
+    return `<span class="status-badge status-${status}">${status}</span>`;
+  }
+
+  async function loadOrders() {
+    try {
+      const orders = await apiFetch('/orders');
+      document.getElementById('orders-loading').style.display = 'none';
+
+      if (orders.length === 0) {
+        document.getElementById('orders-empty').style.display = 'block';
+        return;
+      }
+
+      document.getElementById('orders-list').innerHTML = orders.map(order => {
+        const items = order.OrderItems || [];
+        const itemsHtml = items.map(item => `
+          <div class="order-item-row">
+            <span>${escHtml(item.Product ? item.Product.name : 'Product #' + item.productId)}</span>
+            <span style="color:var(--text-muted)">×${item.quantity}</span>
+            <span style="font-weight:600">${fmt(item.price * item.quantity)}</span>
+          </div>`).join('');
+
+        return `
+          <div class="order-card">
+            <div class="order-card-header">
+              <div class="order-meta">
+                <span class="order-id">Order #${order.id}</span>
+                <span class="order-date">${fmtDate(order.createdAt)}</span>
+              </div>
+              ${statusBadge(order.status)}
+            </div>
+            <div class="order-card-body">
+              ${itemsHtml || '<p style="color:var(--text-muted);font-size:0.9rem;">No items found.</p>'}
+              <div style="font-size:0.85rem;color:var(--text-muted);margin-top:0.75rem;">
+                <i class="fas fa-map-marker-alt"></i>
+                ${escHtml(order.shippingName)} &mdash; ${escHtml(order.shippingAddress)}, ${escHtml(order.shippingCity)} ${escHtml(order.shippingZip)}
+              </div>
+            </div>
+            <div class="order-card-footer">
+              <span class="order-total-label">Order Total</span>
+              <span class="order-total-value">${fmt(order.total)}</span>
+            </div>
+          </div>`;
+      }).join('');
+    } catch (err) {
+      document.getElementById('orders-loading').style.display = 'none';
+      document.getElementById('orders-list').innerHTML = `<p style="color:var(--danger)">Failed to load orders. Please try again.</p>`;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', loadOrders);
+</script>
+</body>
+</html>

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cart — ShopEasy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>body{font-family:'Inter',sans-serif;}</style>
+</head>
+<body>
+
+<header>
+  <nav class="navbar">
+    <div class="container">
+      <a href="/index.html" class="logo"><i class="fas fa-store"></i> ShopEasy</a>
+      <button class="hamburger" id="hamburger" onclick="toggleMobileNav()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-links" id="nav-links">
+        <a href="/products.html">Products</a>
+        <div id="auth-links" style="display:flex;gap:0.75rem;align-items:center;">
+          <a href="/login.html">Login</a>
+          <a href="/register.html" class="btn btn-primary btn-sm">Register</a>
+        </div>
+        <div id="user-links" style="display:none;gap:0.75rem;align-items:center;">
+          <a href="/orders.html"><i class="fas fa-box"></i> Orders</a>
+          <span id="user-name" class="user-name-nav"></span>
+          <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+        <a href="/cart.html" class="cart-link" style="color:var(--primary)">
+          <i class="fas fa-shopping-cart"></i>
+          <span class="cart-badge" id="cart-count">0</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<main class="cart-page container">
+  <h1 class="page-title"><i class="fas fa-shopping-cart"></i> Shopping Cart</h1>
+
+  <div id="cart-empty" class="empty-state" style="display:none;">
+    <div class="icon">🛒</div>
+    <h3>Your cart is empty</h3>
+    <p>Looks like you haven&rsquo;t added anything yet.</p>
+    <a href="/products.html" class="btn btn-primary">Start Shopping</a>
+  </div>
+
+  <div id="cart-content" class="cart-layout" style="display:none;">
+    <div>
+      <div id="cart-items"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:1rem;">
+        <a href="/products.html" class="btn btn-ghost"><i class="fas fa-arrow-left"></i> Continue Shopping</a>
+        <button class="btn btn-danger btn-sm" onclick="handleClearCart()"><i class="fas fa-trash"></i> Clear Cart</button>
+      </div>
+    </div>
+
+    <div>
+      <div class="order-summary">
+        <h3>Order Summary</h3>
+        <div class="summary-line"><span>Subtotal</span><span id="summary-subtotal">$0.00</span></div>
+        <div class="summary-line"><span>Shipping</span><span style="color:var(--success)">Free</span></div>
+        <div class="summary-line"><span>Tax (8%)</span><span id="summary-tax">$0.00</span></div>
+        <hr class="divider">
+        <div class="summary-line total"><span>Total</span><span id="summary-total">$0.00</span></div>
+        <a href="/checkout.html" class="btn btn-success btn-full" style="margin-top:1.25rem;">
+          <i class="fas fa-lock"></i> Proceed to Checkout
+        </a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p>&copy; 2024 ShopEasy. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/products.html">Products</a>
+      <a href="/orders.html">My Orders</a>
+      <a href="/cart.html">Cart</a>
+    </div>
+  </div>
+</footer>
+
+<div id="toast" class="toast"></div>
+<script src="/js/main.js"></script>
+<script>
+  function renderCart() {
+    const cart = getCart();
+    if (cart.length === 0) {
+      document.getElementById('cart-empty').style.display = 'block';
+      document.getElementById('cart-content').style.display = 'none';
+      return;
+    }
+    document.getElementById('cart-empty').style.display = 'none';
+    document.getElementById('cart-content').style.display = 'grid';
+
+    document.getElementById('cart-items').innerHTML = cart.map(item => `
+      <div class="cart-item">
+        <img class="cart-item-img" src="${item.image || 'https://placehold.co/80x60/e5e7eb/6b7280?text=?'}" alt="${escHtml(item.name)}">
+        <div class="cart-item-body">
+          <div class="cart-item-name">${escHtml(item.name)}</div>
+          <div class="cart-item-price">${fmt(item.price)} each</div>
+        </div>
+        <div class="cart-item-controls">
+          <button class="qty-btn" onclick="changeQty(${item.productId}, -1)">−</button>
+          <span class="qty-val">${item.quantity}</span>
+          <button class="qty-btn" onclick="changeQty(${item.productId}, 1)">+</button>
+          <button class="remove-btn" onclick="removeItem(${item.productId})" title="Remove"><i class="fas fa-trash"></i></button>
+        </div>
+      </div>`).join('');
+
+    const sub = cartTotal();
+    const tax = sub * 0.08;
+    document.getElementById('summary-subtotal').textContent = fmt(sub);
+    document.getElementById('summary-tax').textContent = fmt(tax);
+    document.getElementById('summary-total').textContent = fmt(sub + tax);
+  }
+
+  function changeQty(productId, delta) {
+    const cart = getCart();
+    const item = cart.find(i => i.productId === productId);
+    if (item) updateCartQty(productId, item.quantity + delta);
+    renderCart();
+  }
+
+  function removeItem(productId) {
+    removeFromCart(productId);
+    renderCart();
+    showToast('Item removed', 'warning');
+  }
+
+  function handleClearCart() {
+    if (confirm('Clear your entire cart?')) { clearCart(); renderCart(); showToast('Cart cleared', 'warning'); }
+  }
+
+  document.addEventListener('DOMContentLoaded', renderCart);
+</script>
+</body>
+</html>

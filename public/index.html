@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ShopEasy — Your Online Store</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>body{font-family:'Inter',sans-serif;}</style>
+</head>
+<body>
+
+<header>
+  <nav class="navbar">
+    <div class="container">
+      <a href="/index.html" class="logo"><i class="fas fa-store"></i> ShopEasy</a>
+      <button class="hamburger" id="hamburger" onclick="toggleMobileNav()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-links" id="nav-links">
+        <a href="/products.html">Products</a>
+        <div id="auth-links" style="display:flex;gap:0.75rem;align-items:center;">
+          <a href="/login.html">Login</a>
+          <a href="/register.html" class="btn btn-primary btn-sm">Register</a>
+        </div>
+        <div id="user-links" style="display:none;gap:0.75rem;align-items:center;">
+          <a href="/orders.html"><i class="fas fa-box"></i> Orders</a>
+          <span id="user-name" class="user-name-nav"></span>
+          <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+        <button class="cart-link-btn" onclick="openCartDrawer()" aria-label="Open cart">
+          <i class="fas fa-shopping-cart"></i>
+          <span class="cart-badge" id="cart-count">0</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <h1>Shop the Latest Deals</h1>
+    <p>Discover thousands of products at unbeatable prices</p>
+    <div class="hero-buttons">
+      <a href="/products.html" class="btn-hero">Shop Now &rarr;</a>
+      <a href="/register.html" class="btn-hero-outline">Join Free</a>
+    </div>
+  </div>
+</section>
+
+<!-- Categories -->
+<section class="section">
+  <div class="container">
+    <h2 class="section-title">Browse by Category</h2>
+    <p class="section-subtitle">Find exactly what you&rsquo;re looking for</p>
+    <div class="categories-grid" id="categories-grid">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- Featured Products -->
+<section class="section section-white">
+  <div class="container">
+    <h2 class="section-title">Featured Products</h2>
+    <p class="section-subtitle">Handpicked for you</p>
+    <div class="products-grid" id="featured-grid"></div>
+    <div style="text-align:center;margin-top:2rem;">
+      <a href="/products.html" class="btn btn-outline">View All Products &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<!-- Why us -->
+<section class="section">
+  <div class="container">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;text-align:center;">
+      <div style="background:white;padding:2rem;border-radius:10px;box-shadow:var(--shadow);">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">🚚</div>
+        <h3 style="font-weight:700;margin-bottom:0.4rem;">Free Shipping</h3>
+        <p style="color:var(--text-muted);font-size:0.9rem;">On all orders over $50</p>
+      </div>
+      <div style="background:white;padding:2rem;border-radius:10px;box-shadow:var(--shadow);">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">🔒</div>
+        <h3 style="font-weight:700;margin-bottom:0.4rem;">Secure Payments</h3>
+        <p style="color:var(--text-muted);font-size:0.9rem;">100% secure transactions</p>
+      </div>
+      <div style="background:white;padding:2rem;border-radius:10px;box-shadow:var(--shadow);">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">↩️</div>
+        <h3 style="font-weight:700;margin-bottom:0.4rem;">Easy Returns</h3>
+        <p style="color:var(--text-muted);font-size:0.9rem;">30-day hassle-free returns</p>
+      </div>
+      <div style="background:white;padding:2rem;border-radius:10px;box-shadow:var(--shadow);">
+        <div style="font-size:2rem;margin-bottom:0.5rem;">💬</div>
+        <h3 style="font-weight:700;margin-bottom:0.4rem;">24/7 Support</h3>
+        <p style="color:var(--text-muted);font-size:0.9rem;">Always here to help you</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <p>&copy; 2024 ShopEasy. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/products.html">Products</a>
+      <a href="/orders.html">My Orders</a>
+      <a href="/cart.html">Cart</a>
+    </div>
+  </div>
+</footer>
+
+<div id="toast" class="toast"></div>
+<script src="/js/main.js"></script>
+<script>
+  const CATEGORY_ICONS = { Electronics:'💻', Sports:'⚽', Books:'📚', 'Home & Kitchen':'🏠', Clothing:'👕' };
+
+  async function init() {
+    try {
+      document.getElementById('featured-grid').innerHTML = renderSkeletonGrid(8);
+    const [cats, { products }] = await Promise.all([
+        apiFetch('/products/categories'),
+        apiFetch('/products?limit=8')
+      ]);
+
+      document.getElementById('categories-grid').innerHTML = cats.map(cat => `
+        <a href="/products.html?category=${encodeURIComponent(cat)}" class="category-card">
+          <div class="category-icon">${CATEGORY_ICONS[cat] || '🛍️'}</div>
+          <div class="category-name">${escHtml(cat)}</div>
+        </a>`).join('');
+
+      document.getElementById('featured-grid').innerHTML =
+        products.length ? products.map(renderProductCard).join('') : '<p style="color:var(--text-muted)">No products yet. Run npm run seed.</p>';
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

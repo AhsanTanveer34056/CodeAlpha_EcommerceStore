@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products — ShopEasy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>body{font-family:'Inter',sans-serif;}</style>
+</head>
+<body>
+
+<header>
+  <nav class="navbar">
+    <div class="container">
+      <a href="/index.html" class="logo"><i class="fas fa-store"></i> ShopEasy</a>
+      <button class="hamburger" id="hamburger" onclick="toggleMobileNav()" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+      <div class="nav-links" id="nav-links">
+        <a href="/products.html" style="color:var(--primary)">Products</a>
+        <div id="auth-links" style="display:flex;gap:0.75rem;align-items:center;">
+          <a href="/login.html">Login</a>
+          <a href="/register.html" class="btn btn-primary btn-sm">Register</a>
+        </div>
+        <div id="user-links" style="display:none;gap:0.75rem;align-items:center;">
+          <a href="/orders.html"><i class="fas fa-box"></i> Orders</a>
+          <span id="user-name" class="user-name-nav"></span>
+          <button class="btn-logout" onclick="logout()">Logout</button>
+        </div>
+        <button class="cart-link-btn" onclick="openCartDrawer()" aria-label="Open cart">
+          <i class="fas fa-shopping-cart"></i>
+          <span class="cart-badge" id="cart-count">0</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<main class="section">
+  <div class="container">
+    <h1 class="page-title" style="margin-bottom:1.5rem;">All Products</h1>
+
+    <!-- Search & Filters -->
+    <div class="products-toolbar">
+      <div class="search-wrap">
+        <input type="text" id="search-input" placeholder="Search products..." autocomplete="off">
+        <button class="btn btn-primary" onclick="doSearch()"><i class="fas fa-search"></i></button>
+      </div>
+      <div class="filter-chips" id="filter-chips">
+        <span class="chip active" data-cat="">All</span>
+      </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="products-grid" id="products-grid"></div>
+
+    <!-- Pagination -->
+    <div class="pagination" id="pagination"></div>
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p>&copy; 2024 ShopEasy. All rights reserved.</p>
+    <div class="footer-links">
+      <a href="/products.html">Products</a>
+      <a href="/orders.html">My Orders</a>
+      <a href="/cart.html">Cart</a>
+    </div>
+  </div>
+</footer>
+
+<div id="toast" class="toast"></div>
+<script src="/js/main.js"></script>
+<script>
+  let currentPage = 1;
+  let currentCategory = '';
+  let currentSearch = '';
+
+  function getParams() {
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('category')) currentCategory = p.get('category');
+    if (p.get('search')) currentSearch = p.get('search');
+  }
+
+  async function loadCategories() {
+    try {
+      const cats = await apiFetch('/products/categories');
+      const wrap = document.getElementById('filter-chips');
+      cats.forEach(cat => {
+        const chip = document.createElement('span');
+        chip.className = 'chip' + (cat === currentCategory ? ' active' : '');
+        chip.dataset.cat = cat;
+        chip.textContent = cat;
+        chip.onclick = () => setCategory(cat);
+        wrap.appendChild(chip);
+      });
+      if (currentCategory) {
+        document.querySelector('.chip[data-cat=""]').classList.remove('active');
+        const active = document.querySelector(`.chip[data-cat="${currentCategory}"]`);
+        if (active) active.classList.add('active');
+      }
+    } catch(e) { console.error(e); }
+  }
+
+  function setCategory(cat) {
+    currentCategory = cat;
+    currentPage = 1;
+    document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.cat === cat));
+    loadProducts();
+  }
+
+  function doSearch() {
+    currentSearch = document.getElementById('search-input').value.trim();
+    currentPage = 1;
+    loadProducts();
+  }
+
+  async function loadProducts() {
+    const grid = document.getElementById('products-grid');
+    grid.innerHTML = renderSkeletonGrid(12);
+
+    try {
+      const params = new URLSearchParams({ page: currentPage, limit: 12 });
+      if (currentSearch) params.set('search', currentSearch);
+      if (currentCategory) params.set('category', currentCategory);
+
+      const { products, pages, total } = await apiFetch('/products?' + params);
+
+      if (products.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1">
+            <div class="icon">🔍</div>
+            <h3>No products found</h3>
+            <p>Try a different search or category.</p>
+            <button class="btn btn-outline" onclick="setCategory('');document.getElementById('search-input').value='';currentSearch='';loadProducts()">Clear Filters</button>
+          </div>`;
+        document.getElementById('pagination').innerHTML = '';
+        return;
+      }
+
+      grid.innerHTML = products.map(renderProductCard).join('');
+      renderPagination(pages);
+    } catch(err) {
+      grid.innerHTML = `<p style="color:var(--danger);grid-column:1/-1">Failed to load products.</p>`;
+    }
+  }
+
+  function renderPagination(pages) {
+    const wrap = document.getElementById('pagination');
+    if (pages <= 1) { wrap.innerHTML = ''; return; }
+    let html = '';
+    for (let i = 1; i <= pages; i++) {
+      html += `<button class="page-btn${i === currentPage ? ' active' : ''}" onclick="goPage(${i})">${i}</button>`;
+    }
+    wrap.innerHTML = html;
+  }
+
+  function goPage(n) {
+    currentPage = n;
+    loadProducts();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  document.getElementById('search-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSearch();
+  });
+
+  document.addEventListener('DOMContentLoaded', () => {
+    getParams();
+    if (currentSearch) document.getElementById('search-input').value = currentSearch;
+    loadCategories();
+    loadProducts();
+  });
+</script>
+</body>
+</html>
