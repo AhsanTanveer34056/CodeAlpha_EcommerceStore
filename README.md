@@ -128,13 +128,17 @@ ecommerce/
 
 ## Screenshots
 
-> Homepage with featured products and category grid
+### Homepage with featured products and category grid
+![Homepage](public/screenshots/homepage.png)
 
-> Product listing page with skeleton loaders
+### Product listing page with skeleton loaders
+![Product Listing with Skeleton Loaders](public/screenshots/products-skeleton.png)
 
-> Slide-in cart drawer with quantity controls
+### Slide-in cart drawer with quantity controls
+![Slide-in Cart Drawer](public/screenshots/cart-drawer.png)
 
-> Mobile view with hamburger navigation
+### Mobile view with hamburger navigation
+![Mobile View](public/screenshots/mobile-menu.png)
 
 ## License
 

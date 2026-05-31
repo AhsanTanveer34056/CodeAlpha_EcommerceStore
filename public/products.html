@@ -127,6 +127,9 @@
       const params = new URLSearchParams({ page: currentPage, limit: 12 });
       if (currentSearch) params.set('search', currentSearch);
       if (currentCategory) params.set('category', currentCategory);
+      
+      const pageParams = new URLSearchParams(window.location.search);
+      if (pageParams.get('delay')) params.set('delay', pageParams.get('delay'));
 
       const { products, pages, total } = await apiFetch('/products?' + params);
 

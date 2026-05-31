@@ -16,6 +16,7 @@
     "sqlite3": "^5.1.7"
   },
   "devDependencies": {
-    "nodemon": "^3.0.2"
+    "nodemon": "^3.0.2",
+    "puppeteer": "^25.1.0"
   }
 }

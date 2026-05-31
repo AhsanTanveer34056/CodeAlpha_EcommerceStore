@@ -7,7 +7,10 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
   try {
-    const { search, category, page = 1, limit = 12 } = req.query;
+    const { search, category, page = 1, limit = 12, delay } = req.query;
+    if (delay) {
+      await new Promise(resolve => setTimeout(resolve, parseInt(delay)));
+    }
     const where = {};
     if (search) where.name = { [Op.like]: `%${search}%` };
     if (category) where.category = category;
